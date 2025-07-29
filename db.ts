@@ -31,8 +31,8 @@ export class SqliteDb implements Db {
         );
     }
     history(from: string, to: string): Record[] {
-        const fromUnixSec = Math.floor(new Date(from).getTime() * 1000);
-        const toUnixSec = Math.floor(new Date(to).getTime() * 1000);
+        const fromUnixSec = Math.floor(new Date(from).getTime() / 1000);
+        const toUnixSec = Math.floor(new Date(to).getTime() / 1000);
         const stmt = this.conn.prepare(
             `SELECT timestamp, value FROM records
              WHERE unixepoch(timestamp) >= ? AND unixepoch(timestamp) <= ?

@@ -18,14 +18,6 @@ async function configFromFile(path: string): Promise<Config | null> {
     }
 }
 
-function promptPort() {
-    const port = prompt("Port:", "8080")?.trim();
-    if (!port) {
-        throw new Error("stdin not reachable");
-    }
-    return parseInt(port);
-}
-
 async function listen({ port, hostname }: Config) {
     const db: Db = new SqliteDb();
     const routes = new Router();
