@@ -1,6 +1,6 @@
 import { Database } from "jsr:@db/sqlite@0.11";
 
-type Record = {
+export type Record = {
     timestamp: string;
     value: number;
 };

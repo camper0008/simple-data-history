@@ -1,6 +1,6 @@
 import { Application } from "jsr:@oak/oak/application";
 import { Router } from "jsr:@oak/oak/router";
-import { Db, SqliteDb } from "./db.ts";
+import { Db, Record, SqliteDb } from "./db.ts";
 
 export type Config = {
     port: number;
@@ -19,29 +19,34 @@ async function configFromFile(path: string): Promise<Config | null> {
 }
 
 async function listen({ port, hostname }: Config) {
+    let previousRecords: Record[] = [];
+    let activeRecords: Record[] = [];
+
     const db: Db = new SqliteDb();
     const routes = new Router();
-    routes.get("/", async (ctx) => {
-        let path = ctx.request.url.pathname;
-        if (path.endsWith("/")) {
-            path += "index.html";
-        }
 
-        await ctx.send({ root: "./web", path });
+    routes.get("/api/live", (ctx) => {
+        ctx.response.body = previousRecords.concat(activeRecords);
     });
 
-    routes.get("/history/:from/:to", (ctx) => {
+    routes.get("/api/history/:from/:to", (ctx) => {
         ctx.response.body = db.history(ctx.params.from, ctx.params.to);
     });
 
-    routes.post("/upload/:value", (ctx) => {
-        const timestamp = new Date().toISOString();
-        const value = parseInt(ctx.params.value);
-        db.save(
-            timestamp,
-            value,
-        );
+    routes.post("/api/log/:value", (ctx) => {
+        activeRecords.push({
+            timestamp: new Date().toISOString(),
+            value: parseInt(ctx.params.value),
+        });
         ctx.response.status = 200;
+    });
+
+    routes.get("/", async (ctx) => {
+        await ctx.send({ root: "./web", path: "index.html" });
+    });
+
+    routes.get("/:_+", async (ctx) => {
+        await ctx.send({ root: "./web" });
     });
 
     const app = new Application();
@@ -51,6 +56,21 @@ async function listen({ port, hostname }: Config) {
     app.addEventListener("listen", ({ port, hostname }) => {
         console.log(`listening on ${hostname},`, port);
     });
+
+    setInterval(() => {
+        if (previousRecords.length === 0) {
+            previousRecords = activeRecords;
+            activeRecords = [];
+            return;
+        }
+        const median = Math.round(
+            previousRecords.reduce((acc, curr) => acc + curr.value, 0) /
+                previousRecords.length,
+        );
+        previousRecords = activeRecords;
+        activeRecords = [];
+        db.save(new Date().toISOString(), median);
+    }, 5 * 60 * 1000);
 
     await app.listen({ port, hostname });
 }
