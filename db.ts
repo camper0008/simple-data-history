@@ -1,0 +1,43 @@
+import { Database } from "jsr:@db/sqlite@0.11";
+
+type Record = {
+    timestamp: string;
+    value: number;
+};
+
+export interface Db {
+    save(timestamp: string, value: number): void;
+    history(from: string, to: string): Record[];
+}
+
+export class SqliteDb implements Db {
+    private conn: Database;
+
+    constructor() {
+        this.conn = new Database("data.db");
+        this.conn.run(
+            `CREATE TABLE IF NOT EXISTS records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                value INTEGER NOT NULL 
+            )`,
+        );
+    }
+    save(timestamp: string, value: number): void {
+        this.conn.exec(
+            "INSERT INTO records (timestamp, value) VALUES (?, ?)",
+            timestamp,
+            value,
+        );
+    }
+    history(from: string, to: string): Record[] {
+        const fromUnixSec = Math.floor(new Date(from).getTime() * 1000);
+        const toUnixSec = Math.floor(new Date(to).getTime() * 1000);
+        const stmt = this.conn.prepare(
+            `SELECT timestamp, value FROM records
+             WHERE unixepoch(timestamp) >= ? AND unixepoch(timestamp) <= ?
+             ORDER BY unixepoch(timestamp)`,
+        );
+        return stmt.all(fromUnixSec, toUnixSec);
+    }
+}
