@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script defer src="/history/history.js"></script>
+        <link href="/style.css" rel="stylesheet">
+    </head>
+    <body>
+        <canvas id="myChart"></canvas>
+        <center>
+            <h1>
+                <p>
+                    <label for="from">Fra</label>
+                    <input type="date" id="from">
+                    <input type="time" id="fromTime" value="00:00">
+                </p>
+                <p>
+                    <label for="to">Til</label>
+                    <input type="date" id="to">
+                    <input type="time" id="toTime" value="23:59">
+                </p>
+                <button id="retrieve">Hent</button>
+            </h1>
+        <center>
+    </body>
+</html>

@@ -6,3 +6,7 @@ body {
     margin: 1rem auto;
     max-width: 1500px;
 }
+
+input, button {
+    font-size: inherit;
+}

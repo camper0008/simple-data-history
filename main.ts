@@ -30,7 +30,9 @@ async function listen({ port, hostname }: Config) {
     });
 
     routes.get("/api/history/:from/:to", (ctx) => {
-        ctx.response.body = db.history(ctx.params.from, ctx.params.to);
+        const from = new Date(ctx.params.from);
+        const to = new Date(ctx.params.to);
+        ctx.response.body = db.history(from, to);
     });
 
     routes.post("/api/log/:value", (ctx) => {
@@ -41,17 +43,20 @@ async function listen({ port, hostname }: Config) {
         ctx.response.status = 200;
     });
 
-    routes.get("/", async (ctx) => {
-        await ctx.send({ root: "./web", path: "index.html" });
-    });
-
-    routes.get("/:_+", async (ctx) => {
-        await ctx.send({ root: "./web" });
-    });
-
     const app = new Application();
     app.use(routes.routes());
     app.use(routes.allowedMethods());
+    app.use(async (ctx) => {
+        let path = ctx.request.url.pathname;
+        if (!path.includes(".") && !path.endsWith("/")) {
+            ctx.response.redirect(ctx.request.url.pathname + "/");
+            return;
+        }
+        if (path.endsWith("/")) {
+            path += "index.html";
+        }
+        await ctx.send({ root: "./web", path });
+    });
 
     app.addEventListener("listen", ({ port, hostname }) => {
         console.log(`listening on ${hostname},`, port);
