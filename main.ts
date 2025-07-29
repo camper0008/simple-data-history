@@ -70,7 +70,7 @@ async function listen({ port, hostname }: Config) {
         previousRecords = activeRecords;
         activeRecords = [];
         db.save(new Date().toISOString(), median);
-    }, 5 * 60 * 1000);
+    }, 1.25 * 60 * 1000);
 
     await app.listen({ port, hostname });
 }
