@@ -2,6 +2,22 @@ import { Application } from "jsr:@oak/oak/application";
 import { Router } from "jsr:@oak/oak/router";
 import { Db, SqliteDb } from "./db.ts";
 
+export type Config = {
+    port: number;
+    hostname: string;
+};
+
+async function configFromFile(path: string): Promise<Config | null> {
+    try {
+        return JSON.parse(await Deno.readTextFile(path));
+    } catch (err) {
+        if (!(err instanceof Deno.errors.NotFound)) {
+            throw err;
+        }
+        return null;
+    }
+}
+
 function promptPort() {
     const port = prompt("Port:", "8080")?.trim();
     if (!port) {
@@ -10,7 +26,7 @@ function promptPort() {
     return parseInt(port);
 }
 
-async function main() {
+async function listen({ port, hostname }: Config) {
     const db: Db = new SqliteDb();
     const routes = new Router();
     routes.get("/", async (ctx) => {
@@ -44,8 +60,15 @@ async function main() {
         console.log(`listening on ${hostname},`, port);
     });
 
-    const port = promptPort();
-    await app.listen({ port });
+    await app.listen({ port, hostname });
 }
 
-main();
+if (import.meta.main) {
+    const configPath = "conf.json";
+    const config = await configFromFile(configPath);
+    if (!config) {
+        console.error(`error: could not find config at '${configPath}'`);
+        Deno.exit(1);
+    }
+    await listen(config);
+}
