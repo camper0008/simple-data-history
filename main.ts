@@ -35,10 +35,11 @@ async function listen({ port, hostname }: Config) {
         ctx.response.body = db.history(from, to);
     });
 
-    routes.post("/api/log/:value", (ctx) => {
+    routes.post("/api/log/:value/:type", (ctx) => {
         activeRecords.push({
             timestamp: new Date().toISOString(),
             value: parseInt(ctx.params.value),
+            type: parseInt(ctx.params.type),
         });
         ctx.response.status = 200;
     });
@@ -68,13 +69,20 @@ async function listen({ port, hostname }: Config) {
             activeRecords = [];
             return;
         }
-        const median = Math.round(
-            previousRecords.reduce((acc, curr) => acc + curr.value, 0) /
-                previousRecords.length,
-        );
+        const typeMin = previousRecords
+            .reduce((acc, { type }) => Math.min(acc, type), Infinity);
+        const typeMax = previousRecords
+            .reduce((acc, { type }) => Math.max(acc, type), -Infinity);
+        for (let i = typeMin; i <= typeMax; ++i) {
+            const fRecords = previousRecords.filter((x) => x.type === i);
+            const median = Math.round(
+                fRecords.reduce((acc, curr) => acc + curr.value, 0) /
+                    fRecords.length,
+            );
+            db.save(new Date().toISOString(), median, i);
+        }
         previousRecords = activeRecords;
         activeRecords = [];
-        db.save(new Date().toISOString(), median);
     }, 1.25 * 60 * 1000);
 
     await app.listen({ port, hostname });
