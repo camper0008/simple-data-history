@@ -20,7 +20,7 @@ export class SqliteDb implements Db {
             `CREATE TABLE IF NOT EXISTS records (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT NOT NULL,
-                value INTEGER NOT NULL 
+                value INTEGER NOT NULL,
                 type INTEGER NOT NULL 
             )`,
         );
