@@ -27,9 +27,38 @@ function mergeDateTime(date, time) {
 async function updateChart(chart, from, to) {
     const data = await fetch(`/api/history/${from}/${to}`)
         .then((x) => x.json());
-    chart.data.labels = data.map((x) => new Date(x.timestamp)).map(fmtDate);
-    chart.data.datasets[0].data = data.map((x) => x.value);
+
+    chart.data.labels = data.filter((x) => x.type === 0).map((x) =>
+        new Date(x.timestamp)
+    ).map(fmtDate);
+    const minType = data.map((x) => x.type).reduce(
+        (acc, x) => Math.min(acc, x),
+        Infinity,
+    );
+    const maxType = data.map((x) => x.type).reduce(
+        (acc, x) => Math.max(acc, x),
+        -Infinity,
+    );
+    for (let i = minType; i <= maxType; ++i) {
+        chart.data.datasets[i].data = data
+            .filter((x) => x.type === i)
+            .map((x) => x.value);
+    }
+
     chart.update();
+}
+
+function downloadCsv(from, to) {
+    const element = document.createElement("a");
+    element.setAttribute(
+        "href",
+        `/api/history_csv/${from}/${to}`,
+    );
+    element.setAttribute("download", file);
+    document.body.appendChild(element);
+    element.click();
+
+    document.body.removeChild(element);
 }
 
 function main() {
@@ -39,11 +68,28 @@ function main() {
         type: "line",
         data: {
             labels: [],
-            datasets: [{
-                label: "Værdi læst",
-                data: [],
-                borderWidth: 1,
-            }],
+            datasets: [
+                {
+                    type: "line",
+                    label: "Forurening",
+                    data: [],
+                    borderWidth: 1,
+                },
+                {
+                    type: "line",
+                    label: "Vindretning",
+                    data: [],
+                    borderWidth: 1,
+                },
+
+                {
+                    type: "line",
+                    label: "Normal forening",
+                    data: [],
+                    borderWidth: 1,
+                    pointStyle: false,
+                },
+            ],
         },
         options: {
             scales: {
@@ -80,6 +126,7 @@ function main() {
     const fromTimeInput = document.querySelector("#fromTime");
     const toTimeInput = document.querySelector("#toTime");
     const retrieveButton = document.querySelector("#retrieve");
+    const downloadCsvButton = document.querySelector("#download_csv");
 
     updateChart(
         chart,
@@ -90,6 +137,13 @@ function main() {
     retrieveButton.addEventListener("click", () => {
         updateChart(
             chart,
+            mergeDateTime(fromInput.value, fromTimeInput.value),
+            mergeDateTime(toInput.value, toTimeInput.value),
+        );
+    });
+
+    downloadCsvButton.addEventListener("click", () => {
+        downloadCsv(
             mergeDateTime(fromInput.value, fromTimeInput.value),
             mergeDateTime(toInput.value, toTimeInput.value),
         );

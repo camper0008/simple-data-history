@@ -35,6 +35,18 @@ async function listen({ port, hostname }: Config) {
         ctx.response.body = db.history(from, to);
     });
 
+    routes.get("/api/history_csv/:from/:to", (ctx) => {
+        const from = new Date(ctx.params.from);
+        const to = new Date(ctx.params.to);
+        const history = db.history(from, to);
+        const header = `type,timestamp,value\n`;
+        const doc = header +
+            history.map((x) => `${x.type},${x.timestamp},${x.value}`)
+                .join("\n");
+        ctx.response.headers.set("Content-Type", "text/csv");
+        ctx.response.body = doc;
+    });
+
     routes.post("/api/log/:value/:type", (ctx) => {
         activeRecords.push({
             timestamp: new Date().toISOString(),

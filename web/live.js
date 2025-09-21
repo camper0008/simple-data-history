@@ -1,8 +1,22 @@
 async function updateChart(chart) {
     const data = await fetch("/api/live").then((x) => x.json());
-    chart.data.labels = data.map((x) => new Date() - new Date(x.timestamp))
+    chart.data.labels = data.filter((x) => x.type === 0).map((x) =>
+        new Date() - new Date(x.timestamp)
+    )
         .map((x) => `${Math.round(x / 1000)}s`);
-    chart.data.datasets[0].data = data.map((x) => x.value);
+    const minType = data.map((x) => x.type).reduce(
+        (acc, x) => Math.min(acc, x),
+        Infinity,
+    );
+    const maxType = data.map((x) => x.type).reduce(
+        (acc, x) => Math.max(acc, x),
+        -Infinity,
+    );
+    for (let i = minType; i <= maxType; ++i) {
+        chart.data.datasets[i].data = data
+            .filter((x) => x.type === i)
+            .map((x) => x.value);
+    }
     chart.update();
 }
 
@@ -10,14 +24,22 @@ function main() {
     const ctx = document.getElementById("myChart");
 
     const chart = new Chart(ctx, {
-        type: "line",
         data: {
             labels: [],
-            datasets: [{
-                label: "Værdi læst",
-                data: [],
-                borderWidth: 1,
-            }],
+            datasets: [
+                {
+                    type: "line",
+                    label: "Forurening",
+                    data: [],
+                    borderWidth: 1,
+                },
+                {
+                    type: "line",
+                    label: "Vindretning",
+                    data: [],
+                    borderWidth: 1,
+                },
+            ],
         },
         options: {
             scales: {
